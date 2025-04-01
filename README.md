@@ -1,8 +1,6 @@
 # Powder Detection System 🧪
 *A Raspberry Pi-based project to classify powders (talcum, baking soda, cornstarch) using a PM5003 particle sensor.*
 
-![Project Banner](https://via.placeholder.com/800x300?text=Powder+Detection+System) *(Replace with your image)*
-
 ---
 
 ## **Features**
@@ -12,7 +10,7 @@
 
 ## **Hardware Requirements**
 - Raspberry Pi 4 (4GB)
-- PLANTOWER PM5003 sensor
+- PM5 sensor
 - USB-UART adapter (e.g., CP2102)
 
 ## **Setup**
@@ -32,7 +30,7 @@
 ## **File Structure**
 ```
 powder-detector/
-├── pm5003_data_logger.py  # Collects sensor data
+├── pm_data_logger.py  # Collects sensor data
 ├── train_model.py         # Trains ML model
 ├── classify.py            # Real-time classification
 ├── requirements.txt       # Python dependencies
@@ -42,7 +40,7 @@ powder-detector/
 ## **Usage**
 - **Data Collection**:
   ```bash
-  python3 pm5003_data_logger.py
+  python3 pm_data_logger.py
   ```
 - **Training** (after labeling data):
   ```bash
@@ -54,4 +52,4 @@ powder-detector/
   ```
   
 ---
-*Created by [Your Name](https://github.com/libihari)*
+*Created by [Libihari](https://github.com/libihari)*
