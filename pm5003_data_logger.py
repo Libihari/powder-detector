@@ -1,31 +1,37 @@
 import serial
-import pandas as pd
-from datetime import datetime
+import struct
 
-# Initialize serial connection to PM5003
-ser = serial.Serial('/dev/ttyUSB0', 9600, timeout=1)  # Adjust port if needed
-data = []
-
-try:
-    print("Logging data... Press Ctrl+C to stop.")
+def read_pms5003(port='/dev/ttyUSB0'):
+    ser = serial.Serial(port, baudrate=9600, timeout=1)
     while True:
-        if ser.in_waiting > 0:
-            line = ser.readline().decode('utf-8', errors='ignore').strip()
+        data = ser.read(32)
+        if len(data) == 32 and data[0] == 0x42 and data[1] == 0x4D:
+            # Unpack all data (16-bit big-endian)
+            frame = struct.unpack('>16H', data)
+            checksum = sum(data[:-2])  # Sum all bytes except last 2
             
-            # Parse PM data (example format: "PM1.0: 5, PM2.5: 10, PM10: 20")
-            if "PM1.0" in line and "PM2.5" in line and "PM10" in line:
-                pm1 = float(line.split("PM1.0: ")[1].split(",")[0])
-                pm2_5 = float(line.split("PM2.5: ")[1].split(",")[0])
-                pm10 = float(line.split("PM10: ")[1])
-                timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            if checksum == (frame[-1] << 8) + frame[-2]:
+                print(f"""
+                CF=1 Standard Particles:
+                PM1.0: {frame[2]} μg/m³
+                PM2.5: {frame[3]} μg/m³
+                PM10:  {frame[4]} μg/m³
                 
-                data.append([timestamp, pm1, pm2_5, pm10])
-                print(f"{timestamp} | PM1.0: {pm1}, PM2.5: {pm2_5}, PM10: {pm10}")
+                Atmospheric Environment:
+                PM1.0: {frame[5]} μg/m³
+                PM2.5: {frame[6]} μg/m³
+                PM10:  {frame[7]} μg/m³
+                
+                Particle Count (0.1L):
+                >0.3μm: {frame[8]}
+                >0.5μm: {frame[9]}
+                >1.0μm: {frame[10]}
+                >2.5μm: {frame[11]}
+                """)
+            else:
+                print("Checksum failed!")
+        else:
+            print("Invalid frame header")
 
-except KeyboardInterrupt:
-    # Save to CSV when stopped
-    df = pd.DataFrame(data, columns=["Timestamp", "PM1.0", "PM2.5", "PM10"])
-    df.to_csv("powder_data.csv", index=False)
-    print(f"\nData saved to powder_data.csv (Total samples: {len(df)})")
-finally:
-    ser.close()
+if __name__ == '__main__':
+    read_pms5003()
