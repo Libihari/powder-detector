@@ -1,5 +1,5 @@
 # Powder Detection System 🧪
-*A Raspberry Pi-based project to classify powders (talcum, baking soda, cornstarch) using a PM5003 particle sensor.*
+*A Raspberry Pi-based project to classify powders (talcum, baking soda, cornstarch) using a  particle sensor.*
 
 ---
 
