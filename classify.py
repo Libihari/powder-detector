@@ -24,8 +24,7 @@ def generate_pm_values(powder_type):
 
 def main():
     start_time = time.time()
-    print("Starting simulated powder detection...")
-    print("Waiting for first detection (Talcum at 40 seconds)...")
+    print("Starting powder detection simulation...")
     
     while True:
         current_time = time.time() - start_time
@@ -34,19 +33,16 @@ def main():
         for powder, detect_time in DETECTION_TIMES.items():
             if current_time >= detect_time and not hasattr(main, f"detected_{powder}"):
                 pm_values = generate_pm_values(powder)
-                print(f"\nDetected: {powder} at {int(current_time)} seconds")
-                print(f"PM1.0: {pm_values['PM1.0']}, PM2.5: {pm_values['PM2.5']}, PM10: {pm_values['PM10']}")
-                setattr(main, f"detected_{powder}", True)  # Mark as detected
+                print(f"\nDetected: {powder}")
+                print(f"PM1.0: {pm_values['PM1.0']}")
+                print(f"PM2.5: {pm_values['PM2.5']}")
+                print(f"PM10: {pm_values['PM10']}")
+                setattr(main, f"detected_{powder}", True)
                 
                 # If all powders detected, exit
                 if all(getattr(main, f"detected_{p}", False) for p in DETECTION_TIMES):
-                    print("\nAll expected detections completed!")
+                    print("\nSimulation complete!")
                     return
-        
-        # Print a dot every 5 seconds to show progress
-        if int(current_time) % 5 == 0 and not hasattr(main, "last_dot") or main.last_dot != int(current_time):
-            print(".", end="", flush=True)
-            main.last_dot = int(current_time)
         
         time.sleep(0.1)  # Small delay to reduce CPU usage
 
