@@ -1,34 +1,25 @@
-import serial
-import joblib
 import time
+import random
 
-# Load trained model
-model = joblib.load("powder_classifier.pkl")
+# Simulated powder profiles (same as above)
+powders = ["Talcum", "Baking_Powder"]
+count = 0
 
-# Initialize PM5003 sensor
-ser = serial.Serial('/dev/ttyUSB0', 9600, timeout=1)
+print("Simulating real-time classification...")
+while True:
+    # Alternate between powders every 5 seconds
+    current_powder = powders[count % 2]
+    count += 1
 
-def classify_powder(pm1, pm2_5, pm10):
-    prediction = model.predict([[pm1, pm2_5, pm10]])
-    return prediction[0]
+    # Generate fake PM values based on the current powder
+    if current_powder == "Talcum":
+        pm1 = round(random.uniform(5, 10), 1)
+        pm2_5 = round(random.uniform(15, 25), 1)
+        pm10 = round(random.uniform(130, 170), 1)
+    else:
+        pm1 = round(random.uniform(40, 60), 1)
+        pm2_5 = round(random.uniform(70, 90), 1)
+        pm10 = round(random.uniform(20, 40), 1)
 
-try:
-    print("Real-time classification running...")
-    while True:
-        if ser.in_waiting > 0:
-            line = ser.readline().decode('utf-8', errors='ignore').strip()
-            
-            if "PM1.0" in line and "PM2.5" in line and "PM10" in line:
-                pm1 = float(line.split("PM1.0: ")[1].split(",")[0])
-                pm2_5 = float(line.split("PM2.5: ")[1].split(",")[0])
-                pm10 = float(line.split("PM10: ")[1])
-                
-                powder_type = classify_powder(pm1, pm2_5, pm10)
-                print(f"Detected: {powder_type} | PM1.0: {pm1}, PM2.5: {pm2_5}, PM10: {pm10}")
-        
-        time.sleep(1)  # Reduce CPU usage
-
-except KeyboardInterrupt:
-    print("\nStopped by user")
-finally:
-    ser.close()
+    print(f"Detected: {current_powder} | PM1.0: {pm1}, PM2.5: {pm2_5}, PM10: {pm10}")
+    time.sleep(5)  # Change powder every 5 seconds
