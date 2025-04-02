@@ -3,30 +3,31 @@ import csv
 import struct
 from datetime import datetime
 
-def read_pm5003_packet(ser):
-    """Read and validate a complete PM5003 packet"""
+def read_pm_data(ser):
+    """Read a complete PM5003 data packet"""
     while True:
-        # Wait for start bytes 0x42 and 0x4D
-        if ser.read(1) == b'\x42' and ser.read(1) == b'\x4D':
-            # Read remaining 30 bytes
-            packet = ser.read(30)
-            if len(packet) == 30:
-                return packet
+        # Wait for start bytes (0x42 0x4D)
+        if ser.read(1) == b'\x42':
+            if ser.read(1) == b'\x4D':
+                # Read remaining 30 bytes
+                packet = ser.read(30)
+                if len(packet) == 30:
+                    return packet
 
-def parse_pm5003_data(packet):
-    """Parse PM5003 data packet and validate checksum"""
+def parse_pm_packet(packet):
+    """Parse PM5003 data packet"""
     # Unpack all fields (big-endian unsigned shorts)
-    fields = struct.unpack('>15H', packet)
+    data = struct.unpack('>15H', packet)
     
-    # Calculate checksum (sum of first 14 fields)
-    checksum = sum(packet[:28])  # Sum of first 28 bytes (14 fields)
-    if checksum != fields[14]:  # Compare with received checksum
+    # Verify checksum (sum of first 28 bytes)
+    checksum = sum(packet[:28])
+    if checksum != data[14]:
         raise ValueError("Checksum mismatch")
     
     return {
-        'pm1_0': fields[2],  # PM1.0 standard
-        'pm2_5': fields[3],  # PM2.5 standard
-        'pm10': fields[4]    # PM10 standard
+        'pm1_0': data[2],  # PM1.0 standard
+        'pm2_5': data[3],  # PM2.5 standard
+        'pm10': data[4]    # PM10 standard
     }
 
 def main():
@@ -46,29 +47,31 @@ def main():
             # Main data collection loop
             while True:
                 try:
-                    packet = read_pm5003_packet(ser)
-                    data = parse_pm5003_data(packet)
+                    packet = read_pm_data(ser)
+                    pm_data = parse_pm_packet(packet)
                     
-                    # Get user input for labeling
+                    # Get user input
                     label = input(
-                        f"PM1.0={data['pm1_0']}, PM2.5={data['pm2_5']}, PM10={data['pm10']} "
+                        f"Detected - PM1.0: {pm_data['pm1_0']}, PM2.5: {pm_data['pm2_5']}, PM10: {pm_data['pm10']}\n"
                         "Enter powder label: "
                     )
                     
                     # Write to CSV
                     writer.writerow([
-                        data['pm1_0'],
-                        data['pm2_5'],
-                        data['pm10'],
+                        pm_data['pm1_0'],
+                        pm_data['pm2_5'],
+                        pm_data['pm10'],
                         label,
                         datetime.now().isoformat()
                     ])
                     print("✓ Data saved")
                     
                 except ValueError as e:
-                    print(f"! Bad data: {e}")
+                    print(f"! Error: {e} - Skipping packet")
                     continue
                     
+    except serial.SerialException as e:
+        print(f"Serial port error: {e}")
     except KeyboardInterrupt:
         print("\nData collection stopped.")
     finally:
