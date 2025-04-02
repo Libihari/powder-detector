@@ -1,35 +1,41 @@
 import serial
 import csv
-from datetime import datetime
+import time
 
 # Initialize serial connection
 ser = serial.Serial('/dev/ttyUSB0', baudrate=9600, timeout=1)
 
 # CSV file setup
-csv_file = open('powder_data.csv', 'a', newline='')
-writer = csv.writer(csv_file)
+with open('powder_data.csv', 'a', newline='') as csv_file:
+    writer = csv.writer(csv_file)
+    
+    # Write header if file is empty
+    if csv_file.tell() == 0:
+        writer.writerow(['PM1.0', 'PM2.5', 'PM10', 'Label'])
 
-try:
-    print("Logging data... Press Ctrl+C to stop.")
-    while True:
-        if ser.in_waiting:  # Corrected from ser.i to ser.in_waiting
-            # Read PM5003 data (32-byte packets starting with 0x42)
-            packet = ser.read(32)
-            
-            # Parse data (example structure - adjust for your sensor)
-            pm1_0 = int.from_bytes(packet[4:6], byteorder='big')  # PM1.0
-            pm2_5 = int.from_bytes(packet[6:8], byteorder='big')  # PM2.5
-            pm10 = int.from_bytes(packet[8:10], byteorder='big')  # PM10
-            
-            # Get label from user
-            label = input(f"Enter label for PM1.0={pm1_0}, PM2.5={pm2_5}, PM10={pm10}: ")
-            
-            # Write to CSV
-            writer.writerow([pm1_0, pm2_5, pm10, label])
-            print(f"Logged: {pm1_0}, {pm2_5}, {pm10}, {label}")
+    try:
+        print("Logging data... Press Ctrl+C to stop.")
+        while True:
+            if ser.in_waiting > 0:  # CORRECTED: Using in_waiting instead of 'i'
+                # Read until we get start bytes (0x42 0x4D)
+                if ser.read() == b'\x42':
+                    if ser.read() == b'\x4D':
+                        # Read remaining 30 bytes
+                        packet = ser.read(30)
+                        
+                        # Parse data (big-endian)
+                        pm1_0 = (packet[4] << 8) | packet[5]
+                        pm2_5 = (packet[6] << 8) | packet[7]
+                        pm10 = (packet[8] << 8) | packet[9]
+                        
+                        # Get label from user
+                        label = input(f"Detected PM1.0={pm1_0}, PM2.5={pm2_5}, PM10={pm10}. Enter label: ")
+                        
+                        # Write to CSV
+                        writer.writerow([pm1_0, pm2_5, pm10, label])
+                        print(f"Logged: {pm1_0}, {pm2_5}, {pm10}, {label}")
 
-except KeyboardInterrupt:
-    print("\nData collection stopped.")
-finally:
-    csv_file.close()
-    ser.close()
+    except KeyboardInterrupt:
+        print("\nData collection stopped.")
+    finally:
+        ser.close()
